@@ -17,8 +17,12 @@ output and the C firmware that runs on the simulated / real MCU.
 
 ![PCB 3D render](docs/pcb-3d.png)
 
-A full schematic / documentation sheet is also exported as
-[`dice.PDF`](dice.PDF).
+### PCB — copper layout
+
+The board artwork (single-sided copper, shown mirrored as it is printed for
+toner transfer / etching). Source: [`dice.PDF`](dice.PDF).
+
+![PCB copper layout](docs/pcb-layout.png)
 
 ---
 
