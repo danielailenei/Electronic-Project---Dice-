@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes' ?>
+<PROJECT IID="1" BUILDPATH="C:/Users/Daniel/AppData/Local/Temp/VSM Studio/0d582a88732246b087d12fea76695d85/PIC16LF1937" VERSION="830" TYPE="SOURCE" NAME="PIC16LF1937" CONFIGURATION="Debug">
+ <FILES ATTACH="1">
+  <FILE ATTACH="1" GROUP="Source Files" NAME="PIC16LF1937/main.c"/>
+  <FILE ATTACH="1" GROUP="Firmware Files" NAME="PIC16LF1937/Debug/Debug.cof" FIRMWARE="1"/>
+ </FILES>
+ <CONFIGURATION CRC="f7bf979bead01c678d3d68af622011c4" TARGET="Debug" COMPILER="MPLAB XC8" NAME="Debug">
+  <CONTROLLER FAMILY="PIC16" TYPE="PIC16LF1937"/>
+  <FILE TOOL="LD">
+   <FILE TOOL="CC">
+    <FILE NAME="PIC16LF1937/main.c"/>
+   </FILE>
+  </FILE>
+  <OPTION DEFAULT="1" TOOL="LD" NAME="--output=" VALUE="mcof"/>
+  <OPTION DEFAULT="1" TOOL="LD" NAME="-G"/>
+  <OPTION DEFAULT="1" TOOL="LD" NAME="--chip=" VALUE="16LF1937"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--pass1"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--errformat=" VALUE="&quot;Error at file %%%%f line %%%%l column %%%%c: (%%%%n) %%%%s&quot;"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--warnformat=" VALUE="&quot;Warning at file %%%%f line %%%%l column %%%%c: (%%%%n) %%%%s&quot;"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--msgformat=" VALUE="&quot;Message at file %%%%f line %%%%l column %%%%c: (%%%%n) %%%%s&quot;"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="-G"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--chip=" VALUE="16LF1937"/>
+ </CONFIGURATION>
+ <CONFIGURATION CRC="d75abc15d7d93a2d036cda4897b80117" TARGET="Release" COMPILER="MPLAB XC8" NAME="Release">
+  <CONTROLLER FAMILY="PIC16" TYPE="PIC16LF1937"/>
+  <FILE TOOL="LD">
+   <FILE TOOL="CC">
+    <FILE NAME="PIC16LF1937/main.c"/>
+   </FILE>
+  </FILE>
+  <OPTION DEFAULT="1" TOOL="LD" NAME="--output=" VALUE="intel"/>
+  <OPTION DEFAULT="1" TOOL="LD" NAME="--chip=" VALUE="16LF1937"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--pass1"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--errformat=" VALUE="&quot;Error at file %%%%f line %%%%l column %%%%c: (%%%%n) %%%%s&quot;"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--warnformat=" VALUE="&quot;Warning at file %%%%f line %%%%l column %%%%c: (%%%%n) %%%%s&quot;"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--msgformat=" VALUE="&quot;Message at file %%%%f line %%%%l column %%%%c: (%%%%n) %%%%s&quot;"/>
+  <OPTION DEFAULT="1" TOOL="CC" NAME="--chip=" VALUE="16LF1937"/>
+ </CONFIGURATION>
+</PROJECT>
