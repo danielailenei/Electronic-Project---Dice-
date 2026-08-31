@@ -14,3 +14,5 @@
 *.PDF      binary
 *.GBR      binary
 *.IPC      binary
+*.png      binary
+*.jpg      binary

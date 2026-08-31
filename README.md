@@ -9,6 +9,17 @@ The project is captured as a **Proteus Design Suite 8** project (`dice.pdsprj`)
 containing the schematic, the PCB layout, the manufacturing (CADCAM/Gerber)
 output and the C firmware that runs on the simulated / real MCU.
 
+### Schematic
+
+![Schematic](docs/schematic.png)
+
+### PCB — 3D view
+
+![PCB 3D render](docs/pcb-3d.png)
+
+A full schematic / documentation sheet is also exported as
+[`dice.PDF`](dice.PDF).
+
 ---
 
 ## 1. Behaviour
