@@ -1,115 +1,271 @@
 #include <xc.h>
-__PROG_CONFIG(1,0x3FE4) ;     /* INTOSC, WDT off, MCLRE on, CLKOUT off        */
+__PROG_CONFIG(1,0x3FE4) ;
 __PROG_CONFIG(2,0x1EFF) ;
 #define _XTAL_FREQ 16000000
 
-/* --- pip LEDs: anode <- R <- pin, cathode -> GND  => pin HIGH (1) = LED ON --- */
-/* use the LAT latches for outputs to avoid read-modify-write pin hazards        */
-#define LED1 LATAbits.LATA0
-#define LED2 LATAbits.LATA1
-#define LED3 LATAbits.LATA2
-#define LED4 LATAbits.LATA3
-#define LED5 LATAbits.LATA4
-#define LED6 LATAbits.LATA5
-#define LED7 LATAbits.LATA6
-#define LED8 LATBbits.LATB0
-#define LED9 LATBbits.LATB1
+#define LED1 RA0
+#define LED2 RA1
+#define LED3 RA2
+#define LED4 RA3
+#define LED5 RA4
+#define LED6 RA5
+#define LED7 RA6
+#define LED8 RB0
+#define LED9 RB1
 
-/* button: RA7 -> switch -> GND.  NEEDS AN EXTERNAL 10k PULL-UP TO VDD          */
-/* (PIC16F1937 has NO weak pull-up on PORTA).  Pressed = RA7 low = BUTTON true. */
-#define BUTTON (!PORTAbits.RA7)
+#define BUTTON !RA7
 
-/* common-anode 7-seg.  The real segment bit order on THIS board is             */
-/* {a, b, c, d, e, g, f, dp}  (f and g are swapped vs. the textbook order).     */
-/* These are the ORIGINAL values - they already produce correct digits 1..6.   */
-unsigned char v[10] = { 0x03, 0x9F, 0x23, 0x0B, 0x99, 0x49, 0x41, 0x1F, 0x01, 0x09 };
-
-unsigned char a;              /* Timer1 tick, ~25 ms (spare)                    */
+unsigned char v[10] = { 0x03, 0x9F, 0x25, 0x0D,0x99,0x49,0x41,0x1f,0x01,0x09};
+unsigned char a;
 
 void init (void);
-void interrupt ia2 (void);
+void interrupt ia2(void);
 
-/* segments are split: RC0..RC5 carry 6 of them, RD6..RD7 carry the other 2.
-   Do NOT disturb RC6/RC7 (they go to the ALIMENTARE / UART connector).        */
-static void show_digit (unsigned char pat)
-{
-    LATC = (unsigned char)((LATC & 0b11000000) | (pat & 0b00111111));
-    LATD = (unsigned char)((LATD & 0b00111111) | (pat & 0b11000000));
-}
 
-static void render (unsigned char c)
-{
-    switch (c) {
-    case 0: case 6:  LED1=0;LED2=0;LED3=0;LED4=0;LED5=1;LED6=0;LED7=0;LED8=0;LED9=0; show_digit(v[1]); break; /* 1 */
-    case 1:          LED1=1;LED2=0;LED3=0;LED4=0;LED5=0;LED6=0;LED7=0;LED8=0;LED9=1; show_digit(v[2]); break; /* 2 */
-    case 7:          LED1=0;LED2=0;LED3=1;LED4=0;LED5=0;LED6=0;LED7=1;LED8=0;LED9=0; show_digit(v[2]); break; /* 2 */
-    case 2:          LED1=1;LED2=0;LED3=0;LED4=0;LED5=1;LED6=0;LED7=0;LED8=0;LED9=1; show_digit(v[3]); break; /* 3 */
-    case 8:          LED1=0;LED2=0;LED3=1;LED4=0;LED5=1;LED6=0;LED7=1;LED8=0;LED9=0; show_digit(v[3]); break; /* 3 */
-    case 3: case 9:  LED1=1;LED2=0;LED3=1;LED4=0;LED5=0;LED6=0;LED7=1;LED8=0;LED9=1; show_digit(v[4]); break; /* 4 */
-    case 4: case 10: LED1=1;LED2=0;LED3=1;LED4=0;LED5=1;LED6=0;LED7=1;LED8=0;LED9=1; show_digit(v[5]); break; /* 5 */
-    case 5: case 11: LED1=1;LED2=0;LED3=1;LED4=1;LED5=0;LED6=1;LED7=1;LED8=0;LED9=1; show_digit(v[6]); break; /* 6 */
-    }
-}
+void main(void) {
 
-void main (void)
-{
-    unsigned char c    = 0;   /* current frame 0..11                            */
-    unsigned int  step = 0;   /* ms between frames while slowing; 0 = stopped   */
-    unsigned int  t    = 0;   /* delay accumulator                             */
+   init();
 
-    init();
+// "counter" is the variable that stores the current number that is displayed on the dice
+static unsigned char c = 0;
 
-    while (1) {
-        if (BUTTON) {                     /* held: roll fast                    */
-            c++; if (c > 11) c = 0;
-            step = 8;
-            t = 0;
-            __delay_ms(8);
+// this variable is used for the "slowing down" effect
+static int b= 0;
+
+  while(1) {
+    if (BUTTON)
+       {
+      c++;
+      if (c > 11)
+     {
+          c = 0;
+
+         }
+      b= 1500;
+     PORTA = 0b10000000;
         }
-        else if (step) {                  /* released: slow down, then stop     */
-            __delay_ms(1);
-            if (++t >= step) {
-                t = 0;
-                c++; if (c > 11) c = 0;
-                step += 3;                /* each frame a little slower         */
-                if (step > 220) step = 0; /* die has settled                    */
+    else
+    {
+        if (b > 0)
+       {
+            b--;
+            if (b % 100 == 0)
+           {
+                c++;
+                if (c > 11)
+           {
+                    c= 0;
+
+                }
             }
         }
-
-        render(c);
     }
+
+    if (c== 0) {
+        LED1 = 0;
+        LED2 = 0;
+        LED3 = 0;
+        LED4 = 0;
+        LED5 = 1;
+        LED6 = 0;
+        LED7 = 0;
+        LED8 = 0;
+        LED9 = 0;
+       PORTC=v[1];
+       PORTD=v[1];
+
+    // 2
+    } else if (c == 1) {
+        LED1 = 1;
+        LED2 = 0;
+        LED3 = 0;
+        LED4 = 0;
+        LED5 = 0;
+        LED6 = 0;
+        LED7 = 0;
+        LED8 = 0;
+        LED9 = 1;
+        PORTC=v[2];
+       PORTD=v[2];
+
+
+    // 3
+    } else if (c == 2) {
+        LED1 = 1;
+        LED2 = 0;
+        LED3 = 0;
+        LED4 = 0;
+        LED5 = 1;
+        LED6 = 0;
+        LED7 = 0;
+        LED8 = 0;
+        LED9 = 1;
+       PORTC=v[3];
+       PORTD=v[3];
+
+    // 4
+    } else if (c == 3) {
+        LED1 = 1;
+        LED2 = 0;
+        LED3 = 1;
+        LED4 = 0;
+        LED5 = 0;
+        LED6 = 0;
+        LED7 = 1;
+        LED8 = 0;
+        LED9 = 1;
+       PORTC=v[4];
+       PORTD=v[4];
+
+    // 5
+    } else if (c == 4) {
+        LED1 = 1;
+        LED2 = 0;
+        LED3 = 1;
+        LED4 = 0;
+        LED5 = 1;
+        LED6 = 0;
+        LED7 = 1;
+        LED8 = 0;
+        LED9 = 1;
+       PORTC=v[5];
+       PORTD=v[5];
+
+    // 6
+    } else if (c == 5) {
+        LED1 = 1;
+        LED2 = 0;
+        LED3 = 1;
+        LED4 = 1;
+        LED5 = 0;
+        LED6 = 1;
+        LED7 = 1;
+        LED8 = 0;
+        LED9 = 1;
+       PORTC=v[6];
+       PORTD=v[6];
+
+    // 1
+    } else if (c == 6) {
+        LED1 = 0;
+        LED2 = 0;
+        LED3 = 0;
+        LED4 = 0;
+        LED5 = 1;
+        LED6 = 0;
+        LED7 = 0;
+        LED8 = 0;
+        LED9 = 0;
+       PORTC=v[1];
+       PORTD=v[1];
+
+    // 2
+    } else if (c == 7) {
+        LED1 = 0;
+        LED2 = 0;
+        LED3 = 1;
+        LED4 = 0;
+        LED5 = 0;
+        LED6 = 0;
+        LED7 = 1;
+        LED8 = 0;
+        LED9 = 0;
+       PORTC=v[2];
+       PORTD=v[2];
+
+    // 3
+    } else if (c == 8) {
+        LED1 = 0;
+        LED2 = 0;
+        LED3 = 1;
+        LED4 = 0;
+        LED5 = 1;
+        LED6 = 0;
+        LED7 = 1;
+        LED8 = 0;
+        LED9 = 0;
+       PORTC=v[3];
+       PORTD=v[3];
+
+    // 4
+    } else if (c == 9) {
+        LED1 = 1;
+        LED2 = 0;
+        LED3 = 1;
+        LED4 = 0;
+        LED5 = 0;
+        LED6 = 0;
+        LED7 = 1;
+        LED8 = 0;
+        LED9 = 1;
+       PORTC=v[4];
+       PORTD=v[4];
+
+    // 5
+    } else if (c == 10) {
+        LED1 = 1;
+        LED2 = 0;
+        LED3 = 1;
+        LED4 = 0;
+        LED5 = 1;
+        LED6 = 0;
+        LED7 = 1;
+        LED8 = 0;
+        LED9 = 1;
+       PORTC=v[5];
+       PORTD=v[5];
+
+    // 6
+    } else if (c== 11) {
+        LED1 = 1;
+        LED2 = 1;
+        LED3 = 1;
+        LED4 = 0;
+        LED5 = 0;
+        LED6 = 0;
+        LED7 = 1;
+        LED8 = 1;
+        LED9 = 1;
+       PORTC=v[6];
+       PORTD=v[6];
+    }
+
+  }
+
 }
 
 void init (void)
 {
-    OSCCON = 0x7B;                 /* 16 MHz HFINTOSC                           */
+OSCCON = 0x7B;
 
-    TRISA  = 0b10000000;           /* RA7 = button input, RA0..RA6 = LED out    */
-    ANSELA = 0x00;
-    LATA   = 0x00;
+TRISA = 0x00;
+ANSELA = 0b00000000;
+PORTA = 0b10000000;
 
-    TRISB  = 0b00000000;           /* RB0/RB1 = LED8/LED9                       */
-    ANSELB = 0x00;
-    LATB   = 0x00;
+TRISD = 0b00000000;
 
-    TRISC  = 0b11000000;           /* RC0..RC5 = segments; RC6/RC7 left alone   */
-    LATC   = 0x00;
+PORTD= 0b00000000;
 
-    TRISD  = 0b00000000;           /* RD6/RD7 = segments                        */
-    LATD   = 0x00;
+TRISB = 0b00000000;
+ANSELB = 0b00000000;
+PORTB = 0b00000000;
 
-    T1CON  = 0x11;                 /* Fosc/4, 1:2, on  -> ~25 ms overflow       */
-    TMR1IE = 1;
-    PEIE   = 1;
-    GIE    = 1;
+ TRISC = 0x00;
+PORTC= 0x00;
+
+T1CON = 0x11;
+
+TMR1IE = 1;
+PEIE = 1;
+GIE = 1;
 }
-
-void interrupt ia2 (void)
+void interrupt ia2(void)
 {
-    if (TMR1IF) {
-        TMR1IF = 0;
-        TMR1H = 0x3C;
-        TMR1L = 0xAF;
-        a++;
-    }
+if(TMR1IF)
+ {
+ TMR1IF = 0;
+ TMR1H = 0x3C;
+ TMR1L = 0xAF;
+ a++;
+ }
 }

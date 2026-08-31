@@ -3,8 +3,7 @@
 A single-button electronic die built around a **Microchip PIC16LF1937**.
 Holding the button "rolls" the die: nine LEDs arranged as a 3×3 pip grid flash
 through the faces while a 7‑segment display shows the numeric value. When the
-button is released the animation decelerates like a real die and settles on a
-random face.
+button is released the animation runs out and the die settles on a face.
 
 The project is captured as a **Proteus Design Suite 8** project (`dice.pdsprj`)
 containing the schematic, the PCB layout, the manufacturing (CADCAM/Gerber)
@@ -14,29 +13,35 @@ output and the C firmware that runs on the simulated / real MCU.
 
 ## 1. Behaviour
 
+The firmware keeps a frame counter `c` that runs `0 → 11` and wraps. Each value
+of `c` paints one die face on the pips **and** the matching digit `1…6` on the
+7‑segment display. The faces therefore cycle `1 2 3 4 5 6 1 2 3 4 5 6`, with the
+second pass using alternative pip arrangements for 2 and 3 so the roll looks
+livelier.
+
 | Button state | What happens |
 |---|---|
-| **Pressed / held** | The frame counter advances every ~8 ms — the pips and the digit cycle rapidly through the faces. |
-| **Released** | The frame period grows by 3 ms after every frame (8 → 11 → 14 … ms). Once it passes 220 ms the die is considered "settled" and the display freezes on the current face. |
-| **Idle** | The last face stays lit until the button is pressed again. |
+| **Pressed / held** | `c` is incremented on every pass of the main loop, so the pips and digit blur through the faces. The "slow‑down" counter `b` is (re)loaded with `1500`. |
+| **Released** | `b` counts down by 1 each loop pass; every time it reaches a multiple of 100 the frame advances once. That gives ~15 more steps, gradually spaced out by the countdown, and then the die stops. |
+| **Idle** (`b == 0`) | The last face stays lit until the button is pressed again. |
 
-Because the moment of release is not correlated with the internal counter, the
+Because the button release is not correlated with the internal counter, the
 resting face is effectively random (1–6).
 
-The animation walks through **12 frames** (`c = 0…11`). Faces 1, 4, 5 and 6 use
-one pip pattern each; faces 2 and 3 have two alternative pip arrangements so the
-roll looks livelier:
-
-| Frame `c` | Face shown | 7‑seg digit |
-|:--:|:--:|:--:|
-| 0, 6 | 1 | `1` |
-| 1 | 2 (pips D1, D9) | `2` |
-| 7 | 2 (pips D3, D7) | `2` |
-| 2 | 3 | `3` |
-| 8 | 3 (alt.) | `3` |
-| 3, 9 | 4 | `4` |
-| 4, 10 | 5 | `5` |
-| 5, 11 | 6 | `6` |
+| Frame `c` | Face | Pips lit | 7‑seg digit (`v[]`) |
+|:--:|:--:|---|:--:|
+| 0 | 1 | D5 | `v[1]` |
+| 1 | 2 | D1 D9 | `v[2]` |
+| 2 | 3 | D1 D5 D9 | `v[3]` |
+| 3 | 4 | D1 D3 D7 D9 | `v[4]` |
+| 4 | 5 | D1 D3 D5 D7 D9 | `v[5]` |
+| 5 | 6 | D1 D3 D4 D6 D7 D9 | `v[6]` |
+| 6 | 1 | D5 | `v[1]` |
+| 7 | 2 | D3 D7 | `v[2]` |
+| 8 | 3 | D3 D5 D7 | `v[3]` |
+| 9 | 4 | D1 D3 D7 D9 | `v[4]` |
+| 10 | 5 | D1 D3 D5 D7 D9 | `v[5]` |
+| 11 | 6 | D1 D2 D3 D7 D8 D9 | `v[6]` |
 
 ---
 
@@ -62,6 +67,10 @@ _firmware_extras/
       Debug/                         XC8 build output (git-ignored, regenerated)
 ```
 
+A copy of the firmware source also lives inside `dice.pdsprj` (a ZIP archive).
+The unpacked copy under `_firmware_extras/` is the reference version and the one
+GitHub diffs — open the project in Proteus and rebuild to sync the embedded copy.
+
 Auto-generated Proteus files (`*.pdsbak`, `Project Backups/`, `*.workspace`,
 `*.sts`, `bestsave.rte`, print spools) are excluded via `.gitignore`.
 
@@ -76,11 +85,11 @@ Auto-generated Proteus files (`*.pdsbak`, `Project Backups/`, `*.workspace`,
 | U1 | 1 | PIC16LF1937, 40‑pin PDIP | 8‑bit MCU, internal 16 MHz oscillator |
 | D1–D9 | 9 | LED (pip) | 3×3 grid, anode fed from the MCU through a series resistor |
 | DISPLAY | 1 | 7‑segment display, **common anode** | segment order on this board is `a b c d e g f dp` (f and g swapped vs. textbook) |
-| BUTTON | 1 | Tactile push-button | to GND, needs an external pull-up (see 3.4) |
+| BUTTON | 1 | Tactile push-button | to GND, active-low on RA7 |
 | R1–R9 | 9 | LED series resistors | one per pip |
 | R10–R17 | 8 | 7‑segment series resistors | one per segment (a…g + dp) |
 | PROGRAM | 1 | 5‑pin ICSP header | MCLR/VPP, VDD, VSS, PGD, PGC |
-| ALIMENTARE | 1 | Power / UART connector | VDD, GND and RC6/RC7 (TX/RX) |
+| ALIMENTARE | 1 | Power / UART connector | VDD, GND and RC6/RC7 |
 
 *(Reference designators and counts are taken from `dice - CADCAM Netlist.IPC`;
 resistor roles are inferred from the schematic net names.)*
@@ -96,15 +105,20 @@ resistor roles are inferred from the schematic net names.)*
 | RA4 | out | `LED5` (pip D5 – centre) |
 | RA5 | out | `LED6` (pip D6) |
 | RA6 | out | `LED7` (pip D7) |
-| RA7 | **in** | Button (active-low, external 10 k pull-up to VDD) |
+| RA7 | in (read) | Button, active-low (`BUTTON == !RA7`) |
 | RB0 | out | `LED8` (pip D8) |
 | RB1 | out | `LED9` (pip D9) |
-| RC0–RC5 | out | 7‑segment segments (6 of the 8 bits) |
-| RC6 / RC7 | — | reserved for the ALIMENTARE / UART connector — **firmware must not touch them** |
-| RD6 / RD7 | out | 7‑segment segments (remaining 2 bits) |
+| RC0–RC7 | out | 7‑segment pattern — the firmware writes the whole `PORTC` |
+| RD0–RD7 | out | 7‑segment pattern — the firmware writes the whole `PORTD` |
 
-All LED pins are driven **HIGH = LED on** (pin → resistor → LED anode,
-cathode → GND).
+All pip LEDs are driven **HIGH = LED on** (pin → resistor → LED anode,
+cathode → GND). The seven-segment digit is written to `PORTC` **and** `PORTD`
+with the same byte `v[n]`; on the PCB only the wired segment lines are used.
+
+> **Note:** the firmware writes the full `PORTC`/`PORTD` bytes, so RC6/RC7 (the
+> ALIMENTARE / UART pins) are also driven. If you later add UART traffic on
+> those pins, switch the segment output to a read‑modify‑write that masks
+> RC6/RC7.
 
 ### 3.3 Pip (LED) layout
 
@@ -121,22 +135,21 @@ cathode → GND).
 | 3 | D1 D5 D9  (or D3 D5 D7) |
 | 4 | D1 D3 D7 D9 |
 | 5 | D1 D3 D5 D7 D9 |
-| 6 | D1 D3 D4 D6 D7 D9 |
+| 6 | D1 D3 D4 D6 D7 D9  (frame 11: D1 D2 D3 D7 D8 D9) |
 
 ### 3.4 Button
 
-`RA7 → button → GND`. PORTA on the PIC16F1937 has **no internal weak
-pull-ups**, so an **external 10 kΩ resistor from RA7 to VDD is required**.
-The firmware reads the button as `#define BUTTON (!PORTAbits.RA7)` — pressed =
-line pulled low = `BUTTON` true.
+`RA7 → button → GND`, read as `#define BUTTON !RA7` — pressed = line low =
+`BUTTON` true. PORTA on the PIC16F1937 has **no internal weak pull-ups**, so an
+external pull-up resistor from RA7 to VDD is required for a reliable high level
+when the button is open.
 
 ### 3.5 7‑segment display
 
-Common-anode; the two common-anode pins (CA1, CA2) tie to VDD. Segments are
-sunk through R10–R17 by the MCU, so a segment bit of `0` lights that segment.
-On this board the physical bit order is `a, b, c, d, e, g, f, dp` (note **f and
-g are swapped**). The `show_digit()` routine writes the low six segment bits to
-`RC0–RC5` and the top two to `RD6–RD7` without disturbing `RC6/RC7`.
+Common-anode; the common-anode pin(s) tie to VDD, so the MCU sinks each
+segment and a segment bit of `0` lights that segment. On this board the physical
+bit order is `a, b, c, d, e, g, f, dp` (**f and g are swapped**). The values in
+`v[1]…v[6]` are pre-computed for that bit order and the active-low wiring.
 
 ### 3.6 ICSP programming header (PROGRAM)
 
@@ -161,54 +174,58 @@ Set directly in `main.c`:
 
 ```c
 __PROG_CONFIG(1, 0x3FE4);   // INTOSC, WDT off, MCLR enabled, CLKOUT off, PWRTE, BOR
-__PROG_CONFIG(2, 0x1EFF);   // no LVP quirks, no PLL, etc.
-#define _XTAL_FREQ 16000000  // 16 MHz, used by __delay_ms()
+__PROG_CONFIG(2, 0x1EFF);   // no PLL / LVP quirks
+#define _XTAL_FREQ 16000000  // 16 MHz
 ```
 
-`init()` then selects the 16 MHz HF internal oscillator (`OSCCON = 0x7B`),
-makes RA7 the only input on PORTA, turns every analog function off
-(`ANSELA/ANSELB = 0`), and drives all LED/segment ports low.
+`init()` selects the 16 MHz HF internal oscillator (`OSCCON = 0x7B`), makes
+every I/O port an output, turns all analog functions off
+(`ANSELA = ANSELB = 0`), pre-sets `PORTA = 0b1000_0000` (RA7 bit high, pips
+off) and clears the other latches.
 
 ### 4.3 Program flow
 
 ```
 main()
- ├─ init()                     ports, oscillator, Timer1 + interrupts
+ ├─ init()                       ports, oscillator, Timer1 + interrupts
+ ├─ c = 0                        current frame 0..11
+ ├─ b = 0                        slow-down countdown
  └─ forever:
-      if (BUTTON)              held → roll fast
+      if (BUTTON)                held → roll
           c = (c + 1) % 12
-          step = 8;  t = 0
-          delay 8 ms
-      else if (step)           released → decelerate
-          delay 1 ms
-          if (++t >= step)
-              t = 0
+          b = 1500
+          PORTA = 0b10000000     pips off for this pass
+      else if (b > 0)            released → run the roll out
+          b--
+          if (b % 100 == 0)
               c = (c + 1) % 12
-              step += 3
-              if (step > 220) step = 0   // die has settled
-      render(c)                paint pips + digit for the current frame
+
+      // then a 12-way if/else chain on c:
+      //   set LED1..LED9 for the face
+      //   PORTC = v[digit];  PORTD = v[digit];
 ```
 
-`render(c)` sets the nine `LEDx` latch bits for the face and calls
-`show_digit(v[n])` with the matching digit pattern.
+There is no `__delay_ms()` in the loop — the roll speed is simply how fast the
+loop runs, and the `b` countdown stretches the last ~15 frames before the die
+stops.
 
 ### 4.4 Segment pattern table
 
 ```c
-unsigned char v[10] = { 0x03, 0x9F, 0x23, 0x0B, 0x99, 0x49, 0x41, 0x1F, 0x01, 0x09 };
+unsigned char v[10] = { 0x03, 0x9F, 0x25, 0x0D, 0x99, 0x49, 0x41, 0x1F, 0x01, 0x09 };
 //                        0     1     2     3     4     5     6     7     8     9
 ```
 
-Only `v[1]`…`v[6]` are used (digits 1–6). The values already account for the
+Only `v[1]`…`v[6]` are used (digits 1–6). The bytes already account for the
 `a b c d e g f dp` bit order and the common-anode (active-low) wiring of this
-specific board.
+board.
 
 ### 4.5 Timer1 interrupt
 
-`T1CON = 0x11` runs Timer1 from Fosc/4 with a 1:2 prescale; the ISR reloads
-`TMR1H:TMR1L = 0x3CAF` for a ~25 ms overflow and increments a counter `a`.
-This tick is **currently unused** by the game loop — it is wired up and
-available for a future feature (e.g. auto-sleep or a seeded RNG).
+`T1CON = 0x11` runs Timer1 from Fosc/4 with a 1:2 prescale; the ISR clears the
+flag, reloads `TMR1H:TMR1L = 0x3CAF` for a ~25 ms overflow and increments a
+counter `a`. This tick is **currently unused** by the game loop — it is wired up
+and available for a future feature (auto-sleep, seeded RNG, etc.).
 
 ### 4.6 Building & flashing
 
@@ -217,8 +234,8 @@ available for a future feature (e.g. auto-sleep or a seeded RNG).
 2. Build the **Release** configuration to get `dice.hex`.
 3. Flash with a PICkit 3/4 (or ICD) through the **PROGRAM** header:
    `VPP, VDD, VSS, PGD, PGC`.
-4. First power-up: press and hold the button, release, and the die should settle
-   on a face within ~1–2 s.
+4. First power-up: press and hold the button, release, and the die runs the roll
+   out and settles on a face.
 
 ---
 
