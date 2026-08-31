@@ -12,7 +12,6 @@ __PROG_CONFIG(2,0x1EFF) ;
 #define LED7 RA6
 #define LED8 RB0
 #define LED9 RB1
-
 #define BUTTON !RA7
 
 unsigned char v[10] = { 0x03, 0x9F, 0x25, 0x0D,0x99,0x49,0x41,0x1f,0x01,0x09};
@@ -37,23 +36,23 @@ static int b= 0;
        {
       c++;
       if (c > 11)
-     {
+	 {
           c = 0;
 
          }
       b= 1500;
-     PORTA = 0b10000000;
+	 PORTA = 0b10000000;
         }
     else
     {
         if (b > 0)
-       {
+	   {
             b--;
             if (b % 100 == 0)
-           {
+	       {
                 c++;
                 if (c > 11)
-           {
+		   {
                     c= 0;
 
                 }
